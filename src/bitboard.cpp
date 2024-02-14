@@ -3,22 +3,24 @@
 #include "./types.h"
 #include "./bitboard.h"
 
+#include <iostream>
+
 namespace Sneep {
 
-void pretty_print(Bitboard b) {
-    using std::cout, std::endl;
-    std::string sep("+---+---+---+---+---+---+---+---+\n");
-    cout << sep;
-    // TODO Add decrement ops
-    for (Rank r = Rank_Eight; r >= Rank_One; r = Rank(int(r) - 1)) {
-        for (File f = File_A; f <= File_H; f = File(int(f) + 1)) {
-            Bitboard bit = bb_from(f + r) & b;
-            cout << "| " << (bit ? "x" : " ") << " ";
-        }
-        cout << "|\n" << sep;
-    }
+void initialize_bitboards() {
+    TODO;
+}
 
-    cout << endl;
+void pretty_print(const Bitboard b) {
+    std::string sep("+---+---+---+---+---+---+---+---+\n");
+    std::cout << sep;
+    for (Rank r = Rank_8; r >= Rank_1; --r) {
+        for (File f = File_A; f <= File_H; ++f) {
+            Bitboard bit = bb_from(f + r) & b;
+            std::cout << "| " << (bit ? "x" : " ") << " ";
+        }
+        std::cout << "|\n" << sep;
+    }
 }
 
 } // namespace Sneep

@@ -4,6 +4,7 @@
 
 namespace Sneep {
 
+void initialize_bitboards();
 void pretty_print(Bitboard b);
 
 // Creation from different elements
@@ -28,12 +29,12 @@ constexpr Square lsb(Bitboard b) {
 
 // Misc. Bitboard stuff
 constexpr int popcnt(Bitboard b) {
-  // TODO: Is this fast? Otherwise use __builtin_popcountll
-  return std::bitset<64>(b).size();
+  return __builtin_popcountll(b);
 }
 
+// Yes, these are the same except for return type. It's on purpose.
 constexpr bool more_than_one(Bitboard b) { return b & (b - 1); }
-constexpr bool without_lsb(Bitboard b) { return b & (b - 1); }
+constexpr Bitboard without_lsb(Bitboard b) { return b & (b - 1); }
 
 }
 
