@@ -12,22 +12,33 @@ CXXFLAGS = -ggdb -O0 -std=c++17 $(EXTRA_DEFS)
 LDFLAGS = -flto
 
 EXECUTABLE_NAME = sneep.out
+TEST_EXECUTABLE_NAME = test.out
 
-# OR UNCOMMENT THIS LINE INSTEAD:
-# CPP_FILES = $(wildcard *.cpp)
-CPP_FILES = main.cpp bitboard.cpp position.cpp types.cpp
+ALL_CPP_FILES = $(wildcard *.cpp)
+
+CPP_FILES = $(filter-out test.cpp, $(ALL_CPP_FILES))
 OBJ_FILES = $(CPP_FILES:.cpp=.o)
 
-.PHONY: clean
+CPP_FILES_T = $(filter-out main.cpp, $(ALL_CPP_FILES))
+OBJ_FILES_T = $(CPP_FILES_T:.cpp=.o)
+
+.PHONY: clean test lines
 
 $(EXECUTABLE_NAME): $(OBJ_FILES)
 	$(CXX) $(LDFLAGS) -o $@ $^
+
+test: $(TEST_EXECUTABLE_NAME)
+$(TEST_EXECUTABLE_NAME): $(OBJ_FILES_T)
+	$(CXX) -o $@ $^
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 clean:
 	rm -v $(EXECUTABLE_NAME)
-	rm -v $(OBJ_FILES)
+	rm -v $(wildcard *.o)
+
+lines:
+	cloc *
 
 # end

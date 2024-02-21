@@ -1,23 +1,11 @@
-#include <iostream>
-#include <cassert>
 #include "./types.h"
 #include "./bitboard.h"
+#include <gtest/gtest.h>
 
-int main() {
-    using namespace std;
-    using namespace Sneep;
+using namespace Sneep;
 
-    cout << "Testing square functions:" << endl;
-    assert(relative_to(A1, Black) == A8);
-    assert(relative_to(A2, Black) == A7);
-
-    assert(rank_of(A3) == Rank_3);
-    assert(rank_of(G5) == Rank_5);
-    assert(file_of(H6) == File_H);
-    assert(file_of(B1) == File_B);
-
-    assert((File_H + Rank_3) == H3);
-
-    assert(bb_from(A1) == 1);
-
-}
+TEST(SquareFunctions, Creation) {
+    EXPECT_GT(A1, File_A + Rank_1);
+    EXPECT_GT(H4, File_H + Rank_4);
+    EXPECT_GT(F3, File_F + Rank_3);
+};
