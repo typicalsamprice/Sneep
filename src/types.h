@@ -9,26 +9,35 @@
 #include <iostream>
 
 namespace Sneep {
+#define STR(X) STR2(X)
+#define STR2(X) #X
+
 #define TODO                                                                   \
   do {                                                                         \
     assert(false && "TODO: Section unfinished");                               \
   } while (0)
 
-// IFDEF'd garbage goes here
+// {{{ IFDEF'd garbage goes here
 
-#if defined(THROW_MANY_ERRS)
+#if defined(THROW_MANY_ERRS) && !defined(NDEBUG)
 constexpr bool ThrowExtraErrors = true;
-constexpr bool ThrowErrors = true;
 #else
 constexpr bool ThrowExtraErrors = false;
-#if defined(THROW_ERRS)
+#endif
+
+#if (defined(THROW_ERRS) || defined(THROW_MANY_ERRS)) && !defined(NDEBUG)
 constexpr bool ThrowErrors = true;
 #else
 constexpr bool ThrowErrors = false;
 #endif
+
+#if !defined(NDEBUG)
+constexpr bool AssertionsEnabled = true;
+#else
+constexpr bool AssertionsEnabled = false;
 #endif
 
-// IFDEF'd garbage ends here
+// }} IFDEF'd garbage ends here
 
 typedef uint64_t Bitboard;
 
@@ -118,12 +127,17 @@ public:
   Piece() : type(NO_TYPE), color(White){};
   Piece(PieceT p, Color c) : type(p), color(c){};
   Piece(char c);
+
+  bool operator==(const Piece& that) { return color == that.color && type == that.type; }
+
   Score value() const;
   char print() const;
 
   PieceT type;
   Color color;
 };
+
+std::ostream &operator<<(std::ostream &os, const Piece &pc);
 
 inline Score Piece::value() const {
   switch (type) {
@@ -221,6 +235,19 @@ enum CastleRights {
   Castle_OO = White_OO | Black_OO,
   Castle_OOO = White_OOO | Black_OOO
 };
+
+inline CastleRights operator|(CastleRights cr, CastleRights cr2) {
+  return CastleRights(int(cr) | int(cr2));
+}
+inline CastleRights operator|=(CastleRights &cr, CastleRights cr2) {
+  return cr = cr | cr2;
+}
+inline CastleRights operator-(CastleRights cr, CastleRights cr2) {
+  return CastleRights(int(cr) & ~int(cr2));
+}
+inline CastleRights operator-=(CastleRights &cr, CastleRights cr2) {
+  return cr = cr - cr2;
+}
 
 } // namespace Sneep
 

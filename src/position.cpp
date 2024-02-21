@@ -5,6 +5,8 @@
 #include <memory>
 #include <sstream>
 
+#include "debug.h"
+
 namespace Sneep {
 // I totally forgot how to do this operator overload to easily view the
 // Position:
@@ -22,7 +24,7 @@ std::ostream &operator<<(std::ostream &os, const Position &pos) {
   return os;
 }
 
-// PRIVATE METHODS
+// {{{ Private Methods
 bool Position::is_legal(Move m, bool assumePL) const {
   if (!assumePL && !is_pseudo_legal(m))
     return false;
@@ -44,12 +46,9 @@ bool Position::is_pseudo_legal(Move m) const {
 
 void Position::do_move(Move m) {}
 void Position::undo_move(Move m) {}
+// }}}
 
-// PUBLIC METHODS
-Position::Position() {
-  Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-}
-
+// {{{ Public Methods
 Position::Position(std::string fenString) {
   // Should this throw an error when a failure happens? THROW_EXTRA_ERRS
   // controls this, otherwise gives invalid Position (use at own risk!)
@@ -81,13 +80,24 @@ Position::Position(std::string fenString) {
     }
 
     Piece p(tok);
+
+    // std::cout << "Square: " << s << "\nPiece: " << p << "\nToken: " << tok << std::endl;
+
     // This obviously isn't a bug (anymore), but I feel SO smart immediately
     // realizing the segfault was a) In the Position constructor b) Specifically
     // in this method call c) It was actually above, construction from a [char]
     // wasn't precise
+
+    // Mother Freaking Heck! There was another bug I *thought* was on this line (unrelated to the segfault)
+    // and it was because C++ doesn't freaking allow constructor chaining! Who would have thought. Now, see how I found out:
+    // https://stackoverflow.com/questions/187640/default-parameters-with-c-constructors
+    // Yeah, that's why it has a default constructor! :) Wasted only an hour or three on this.
     put_piece(p, s);
     ++s;
   }
+
+  #warning This returns early
+  return;
 
   fen >> tok;
   to_move = (tok == 'w' ? White : Black);
@@ -98,13 +108,33 @@ Position::Position(std::string fenString) {
 
   fen >> tok;
   while ((fen >> tok) && !isspace(tok)) {
+    switch (tok) {
+    case 'K':
+      state->cr |= White_OO;
+      break;
+    case 'Q':
+      state->cr |= White_OOO;
+      break;
+    case 'k':
+      state->cr |= Black_OO;
+      break;
+    case 'q':
+      state->cr |= Black_OOO;
+      break;
+    default:
+      if (ThrowErrors)
+        assert(0 && "Invalid Castling character in FEN.");
+    }
   }
+
+  fen >> std::skipws >> state->halfmoves >> _fullmoves;
 
   // TODO parse rest of FEN
 }
 
 void Position::put_piece(Piece p, Square s) {
   assert(empty(s));
+  debug::print(p);
 
   Bitboard b = bb_from(s);
   colors_bb[p.color] |= b;
@@ -116,5 +146,6 @@ void Position::put_piece(Piece p, Square s) {
 
 Bitboard Position::attacks_to(Square s, Bitboard occ) const { TODO; }
 Bitboard Position::sliders_to(Square s, Bitboard occ) const { TODO; }
+// }}}
 
 } // namespace Sneep

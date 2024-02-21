@@ -37,4 +37,9 @@ Piece::Piece(char c) {
   }
 }
 
+std::ostream &operator<<(std::ostream &os, const Piece &pc) {
+  os << "Piece { type: " << pc.type << ", color: " << pc.color << " }";
+  return os;
+}
+
 } // namespace Sneep

@@ -8,6 +8,7 @@
 namespace Sneep {
 
 class State {
+public:
   Bitboard checkers;
   Bitboard pinners[2];
   Bitboard blockers[2];
@@ -53,27 +54,29 @@ private:
   Bitboard attacks_to(Square s) const;
   Bitboard attacks_to(Square s, Bitboard occ) const;
   Bitboard sliders_to(Square s, Bitboard occ) const;
+
 public:
-  Position();
-  Position(std::string fen);
+  Position(std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
   // Note to reader: When I went back to SF to look at the operator overload to
   // print out, this is what they USED to have... now they have multiple
-  // templates for this stuff. Wayyy fancier but honestly this works perfectly
-  // fine for what we need... although the templates are nice for sliders
-  // especially. See stockfish position.cpp, same file as in position.cpp here to cite the '<<' overload
- //% constexpr Bitboard pieces() const;
- //% constexpr Bitboard pieces(Color c) const;
- //% constexpr Bitboard pieces(PType pt) const;
- //% constexpr Bitboard pieces(Color c, PType pt) const;
- //% constexpr Bitboard pieces(PType pt1, PType pt2) const;
- //% constexpr Bitboard pieces(Color c, PType pt1, PType pt2) const;
+  // templates for this stuff. Wayyy fancier but honestly the old way works
+  // perfectly fine for what we need... although the templates are nice for
+  // sliders especially. See stockfish position.cpp, same file as in
+  // position.cpp here to cite the '<<' overload
+  //% constexpr Bitboard pieces() const;
+  //% constexpr Bitboard pieces(Color c) const;
+  //% constexpr Bitboard pieces(PType pt) const;
+  //% constexpr Bitboard pieces(Color c, PType pt) const;
+  //% constexpr Bitboard pieces(PType pt1, PType pt2) const;
+  //% constexpr Bitboard pieces(Color c, PType pt1, PType pt2) const;
 
   Bitboard pieces(PieceT pt = ALL_TYPES) const;
   Bitboard pieces(Color c) const;
-  template<typename... PieceTypes> Bitboard pieces(PieceT pt, PieceTypes... pts) const;
-  template<typename... PieceTypes> Bitboard pieces(Color c, PieceTypes... pts) const;
-
+  template <typename... PieceTypes>
+  Bitboard pieces(PieceT pt, PieceTypes... pts) const;
+  template <typename... PieceTypes>
+  Bitboard pieces(Color c, PieceTypes... pts) const;
 
   Square king(Color c) const;
   Piece piece_on(Square s) const;
@@ -82,43 +85,46 @@ public:
   inline uint16_t moves() const;
 };
 
+// The aforementioned operator overload I stole from SF.
 std::ostream &operator<<(std::ostream &os, const Position &pos);
 
 inline Piece Position::moved_piece(Move m) const {
-    assert(m.is_ok());
-    return squares[m.from()];
+  assert(m.is_ok());
+  return squares[m.from()];
 }
 
 // Repr-related
-inline Bitboard Position::pieces(PieceT pt) const {
-    return pieces_bb[pt];
-}
-template<typename... PieceTypes>
+inline Bitboard Position::pieces(PieceT pt) const { return pieces_bb[pt]; }
+template <typename... PieceTypes>
 inline Bitboard Position::pieces(PieceT pt, PieceTypes... pts) const {
-    // Recursively call this function, ORing with itself
-    return pieces(pt) | pieces(pts...);
+  // Recursively call this function, ORing with itself
+  return pieces(pt) | pieces(pts...);
 }
 
-inline Bitboard Position::pieces(Color c) const {
-    return colors_bb[c];
-}
-template<typename... PieceTypes>
+inline Bitboard Position::pieces(Color c) const { return colors_bb[c]; }
+template <typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
-    // Recursively call the above function, anded with color to only get all the pieces of the right color
-    return pieces(c) & pieces(pts...);
+  // Recursively call the above function, anded with color to only get all the
+  // pieces of the right color
+  return pieces(c) & pieces(pts...);
 }
 
-inline Square Position::king(Color c) const { return lsb(pieces(c, King)); }
+inline Square Position::king(Color c) const {
+  assert(pieces(c, King)); // Can't be nonzero.... I dearly hope
+  return lsb(pieces(c, King));
+}
 
 inline Piece Position::piece_on(Square s) const {
   assert(is_ok(s));
   return squares[s];
 }
-inline bool Position::empty(Square s) const { return !is_ok(piece_on(s)); }
+inline bool Position::empty(Square s) const {
+  return piece_on(s).type == NO_TYPE;
+}
 
 // Attack/move-related
 inline Bitboard Position::attacks_to(Square s) const {
-    return attacks_to(s, pieces());
+  return attacks_to(s, pieces());
 }
 
 // Misc

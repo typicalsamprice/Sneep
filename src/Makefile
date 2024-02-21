@@ -9,6 +9,8 @@ EXTRA_DEFS = -DTHROW_MANY_ERRS
 CXX = clang++
 CXXFLAGS = -ggdb -O0 -std=c++17 $(EXTRA_DEFS)
 
+LDFLAGS = -flto
+
 EXECUTABLE_NAME = sneep.out
 
 # OR UNCOMMENT THIS LINE INSTEAD:
@@ -19,7 +21,7 @@ OBJ_FILES = $(CPP_FILES:.cpp=.o)
 .PHONY: clean
 
 $(EXECUTABLE_NAME): $(OBJ_FILES)
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@
