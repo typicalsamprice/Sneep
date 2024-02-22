@@ -1,17 +1,21 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include "debug.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 
 #include <bit>
 #include <bitset>
+#include <cstdlib>
 #include <iostream>
 
 namespace Sneep {
 #define STR(X) STR2(X)
 #define STR2(X) #X
 
+#warning Remove TODO macro
 #define TODO                                                                   \
   do {                                                                         \
     assert(false && "TODO: Section unfinished");                               \
@@ -74,11 +78,55 @@ enum Direction {
   DirSW = DirS + DirW
 };
 
+// To help with slider stuff
+template<bool CONSIDER_ALL>
+inline int indexify(Direction d) {
+  int rv;
+
+  switch (d) {
+    case DirN:
+      rv = 1;
+      break;
+    case DirS:
+      rv = 2;
+      break;
+    case DirE:
+      rv = 3;
+      break;
+    case DirW:
+      rv = 4;
+      break;
+    case DirNE:
+      rv = CONSIDER_ALL ? 5 : 1;
+      break;
+    case DirNW:
+      rv = CONSIDER_ALL ? 6 : 2;
+      break;
+    case DirSE:
+      rv = CONSIDER_ALL ? 7 : 3;
+      break;
+    case DirSW:
+      rv = CONSIDER_ALL ? 8 : 4;
+      break;
+    default:
+      if (ThrowErrors) {
+        debug::error("Invalid direction passed");
+      }
+      break;
+  }
+
+  return rv;
+}
+
 constexpr Direction operator*(int i, Direction d) {
   return Direction(int(d) * i);
 }
 constexpr Direction operator+(Direction d1, Direction d2) {
   return Direction(int(d1) + int(d2));
+}
+
+constexpr Direction pawn_push(Color c) {
+  return c == White ? DirN : DirS;
 }
 
 // Just squares + file/rank things
@@ -110,6 +158,23 @@ constexpr Rank relative_to(Rank r, Color c) {
 constexpr bool is_ok(Square s) {
   assert(s <= NO_SQUARE); // Maybe catch some UB in debug modes
   return s < NO_SQUARE;
+}
+
+constexpr int distance(Square a, Square b) {
+  assert(is_ok(a) && is_ok(b));
+  return std::max(abs(rank_of(a) - rank_of(b)), abs(file_of(a) - file_of(b)));
+}
+
+constexpr int distance_to_edge(Square s, Direction d) {
+  return d == DirN ? 7 - rank_of(s)
+    : d == DirS ? rank_of(s) - 1
+    : d == DirE ? 7 - file_of(s)
+    : d == DirW ? file_of(s)
+    : d == DirNW ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirW))
+    : d == DirNE ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirE))
+    : d == DirSE ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirE))
+    : d == DirSW ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirW))
+    : -1;
 }
 
 constexpr Square relative_to(Square s, Color c) {
@@ -173,6 +238,10 @@ inline char Piece::print() const {
 inline bool is_ok(Piece p) {
   assert(p.type >= Pawn);
   return p.type < ALL_TYPES;
+}
+
+constexpr bool is_slider(PieceT pt) {
+  return pt >= Bishop && pt <= Queen;
 }
 
 enum MoveT { Normal, EnPassant, Castle, Promotion };

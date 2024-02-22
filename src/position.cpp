@@ -1,4 +1,5 @@
 #include "position.h"
+#include "movegen.h"
 #include "types.h"
 #include <ios>
 #include <iostream>
@@ -81,7 +82,9 @@ Position::Position(std::string fenString) {
 
     Piece p(tok);
 
-    // std::cout << "Square: " << s << "\nPiece: " << p << "\nToken: " << tok << std::endl;
+    // debug::print(s);
+    // debug::print(p);
+    // debug::print(tok);
 
     // This obviously isn't a bug (anymore), but I feel SO smart immediately
     // realizing the segfault was a) In the Position constructor b) Specifically
@@ -144,8 +147,36 @@ void Position::put_piece(Piece p, Square s) {
   // Should be all?? TODO Bugtest/Perftest to catch it
 }
 
-Bitboard Position::attacks_to(Square s, Bitboard occ) const { TODO; }
-Bitboard Position::sliders_to(Square s, Bitboard occ) const { TODO; }
+Bitboard Position::attacks_to(Square s, Bitboard occ) const {
+     Bitboard rv = 0;
+     // Compiler should auto-reuse that value, since this is all `const` wrt Position.
+     Bitboard rq_att = sliders_to(s, occ) & pieces(Rook, Queen);
+     Bitboard bq_att = sliders_to(s, occ) & pieces(Bishop, Queen);
+
+     rv |= rq_att | bq_att;
+
+     Bitboard wpawns = pieces(White, Pawn) & pawn_attacks(s, Black);
+     Bitboard bpawns = pieces(Black, Pawn) & pawn_attacks(s, White);
+
+     Bitboard knights = pieces(Knight) & knight_attacks(s);
+     Bitboard king = pieces(King) & king_attacks(s);
+
+     rv |= wpawns | bpawns;
+     rv |= knights | king;
+
+     rv |= sliders_to(s, occ);
+
+     return rv;
+}
+
+Bitboard Position::sliders_to(Square s, Bitboard occ) const {
+     Bitboard rv = 0;
+
+     rv |= slider_attacks<Bishop>(s, occ) & pieces(Bishop, Queen);
+     rv |= slider_attacks<Rook>(s, occ) & pieces(Rook, Queen);
+
+     return rv;
+}
 // }}}
 
 } // namespace Sneep

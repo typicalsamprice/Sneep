@@ -4,7 +4,9 @@
 #include "./bitboard.h"
 #include "./position.h"
 
-#warning Get rid of TODO macro
+#if !defined(__cpp_lib_bitops) || __cpp_lib_bitops < 201907L
+#error "Bit operations not defined!"
+#endif
 
 int main(int argc, char **argv) {
   using namespace Sneep; // Teehee
@@ -15,6 +17,8 @@ int main(int argc, char **argv) {
     << "\nAssertionsEnabled: " << AssertionsEnabled
     << "\nThrowErrors: " << ThrowErrors
     << "\nThrowExtraErrors: " << ThrowExtraErrors << std::endl;
+
+  initialize_bitboards();
 
   Position p;
   std::cout << p << std::endl;
