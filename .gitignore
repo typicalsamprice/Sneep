@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Don't need the rendered form on GH
+Proposal.pdf
