@@ -7,7 +7,7 @@
 EXTRA_DEFS = -DTHROW_MANY_ERRS
 
 CXX = clang++
-CXXFLAGS = -ggdb -O0 -std=c++17 $(EXTRA_DEFS)
+CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS)
 
 LDFLAGS = -flto
 
@@ -39,6 +39,6 @@ clean:
 	rm -v $(wildcard *.o)
 
 lines:
-	cloc *
+	cloc ../**
 
 # end
