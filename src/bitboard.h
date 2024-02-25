@@ -47,6 +47,13 @@ constexpr int popcnt(Bitboard b) {
   return std::popcount(b);
 }
 
+constexpr Bitboard mask_for(Direction d) {
+  // So you can make sure you aren't overflowing.
+  return (d == DirE | d == DirNE | d == DirSE) ? bb_from(File_A)
+    : (d == DirW | d == DirNW | d == DirSW) ? bb_from(File_H)
+    : 0;
+}
+
 // Yes, these are the same except for return type. It's on purpose.
 constexpr bool more_than_one(Bitboard b) { return b & (b - 1); }
 constexpr Bitboard without_lsb(Bitboard b) { return b & (b - 1); }
