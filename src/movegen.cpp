@@ -38,7 +38,7 @@ Bitboard slider_attacks(const Square s, const Bitboard occ) {
       concerned = msb(blocking);
     }
 
-    Bitboard fixed = pot ^ (PT == Bishop ? BishopST : RookST)[concerned][indexify<false>(dir)];
+    Bitboard fixed = pot ^ (PT == Bishop ? BishopST : RookST)[concerned][index(dir)];
     rv |= fixed;
   }
 

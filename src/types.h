@@ -85,28 +85,28 @@ inline int indexify(Direction d) {
 
   switch (d) {
     case DirN:
-      rv = 1;
+      rv = 0;
       break;
     case DirS:
-      rv = 2;
+      rv = 1;
       break;
     case DirE:
-      rv = 3;
+      rv = 2;
       break;
     case DirW:
-      rv = 4;
+      rv = 3;
       break;
     case DirNE:
-      rv = CONSIDER_ALL ? 5 : 1;
+      rv = CONSIDER_ALL ? 4 : 0;
       break;
     case DirNW:
-      rv = CONSIDER_ALL ? 6 : 2;
+      rv = CONSIDER_ALL ? 5 : 1;
       break;
     case DirSE:
-      rv = CONSIDER_ALL ? 7 : 3;
+      rv = CONSIDER_ALL ? 6 : 2;
       break;
     case DirSW:
-      rv = CONSIDER_ALL ? 8 : 4;
+      rv = CONSIDER_ALL ? 7 : 3;
       break;
     default:
       if (ThrowErrors)
@@ -117,6 +117,8 @@ inline int indexify(Direction d) {
   return rv;
 }
 
+// Index respective to Rook/Bishop sliders
+// Used to index into Attack-Occ Structures based on Direction
 constexpr int index(Direction d) {
   return indexify<false>(d);
 }
