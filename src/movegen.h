@@ -7,6 +7,7 @@ namespace Sneep {
 extern Bitboard BishopST[64][4];
 extern Bitboard RookST[64][4];
 
+Bitboard ray(const Square s, const Direction d);
 template <PieceT PT>
 Bitboard slider_attacks(const Square s, const Bitboard occ);
 

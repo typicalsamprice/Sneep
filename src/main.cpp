@@ -21,9 +21,7 @@ int main(int argc, char **argv) {
 
   initialize_bitboards();
 
-  pretty_print(knight_attacks(H4));
-  pretty_print(pawn_attacks(E3, White));
-  pretty_print(king_attacks(E3));
+  pretty_print(slider_attacks<Bishop>(Sneep::E3, bb_from(F4)));
 
   return 0;
 }

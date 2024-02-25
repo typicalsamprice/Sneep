@@ -53,7 +53,30 @@ void initialize_bitboards() {
 
     KnightMoves[s] = knights;
 
-    // TODO sliders
+    Direction r_dirs[] = { DirN, DirS, DirW, DirE };
+    Direction b_dirs[] = { DirNE, DirSE, DirNW, DirSW };
+    for (const Direction d : r_dirs) {
+      Bitboard mask = mask_for(d);
+      Bitboard tb = b; // copy, to change around.
+      Bitboard att = 0;
+
+      while ((tb <<= d)) {
+        tb &= ~mask;
+        att |= tb;
+      }
+      RookST[s][index(d)] = att;
+    }
+    for (const Direction d : b_dirs) {
+      Bitboard mask = mask_for(d);
+      Bitboard tb = b; // copy, to change around.
+      Bitboard att = 0;
+
+      while (tb <<= d) {
+        tb &= ~mask;
+        att |= tb;
+      }
+      BishopST[s][index(d)] = att;
+    }
   }
 }
 
