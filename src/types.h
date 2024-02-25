@@ -109,13 +109,16 @@ inline int indexify(Direction d) {
       rv = CONSIDER_ALL ? 8 : 4;
       break;
     default:
-      if (ThrowErrors) {
+      if (ThrowErrors)
         debug::error("Invalid direction passed");
-      }
       break;
   }
 
   return rv;
+}
+
+constexpr int index(Direction d) {
+  return indexify<false>(d);
 }
 
 constexpr Direction operator*(int i, Direction d) {
@@ -167,7 +170,7 @@ constexpr int distance(Square a, Square b) {
 
 constexpr int distance_to_edge(Square s, Direction d) {
   return d == DirN ? 7 - rank_of(s)
-    : d == DirS ? rank_of(s) - 1
+    : d == DirS ? rank_of(s)
     : d == DirE ? 7 - file_of(s)
     : d == DirW ? file_of(s)
     : d == DirNW ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirW))

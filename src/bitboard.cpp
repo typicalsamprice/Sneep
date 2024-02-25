@@ -25,54 +25,35 @@ inline Bitboard make_pawn_attacks(Square s, Color c) {
 void initialize_bitboards() {
   for (Square sinc = A1; sinc <= H8; ++sinc) {
     const Square s = sinc;
+    const Bitboard b = bb_from(s);
 
-    PawnMoves[s][0] = make_pawn_attacks(s, White);
-    PawnMoves[s][1] = make_pawn_attacks(s, Black);
+    PawnMoves[s][White] = make_pawn_attacks(s, White);
+    PawnMoves[s][Black] = make_pawn_attacks(s, Black);
 
-    Bitboard king = PawnMoves[s][0] | PawnMoves[s][1];
-    king |= (PawnMoves[s][1] << DirN) | (PawnMoves[s][0] << DirS); // Get the side-middle
-    king |= bb_from(s) << pawn_push(White); // Vert-middle
-    king |= bb_from(s) << pawn_push(Black);
-    KingMoves[s] = king;
+    Bitboard updown = (b << DirN) | (b << DirS);
+    Bitboard kings = updown;
+    kings |= ((updown | b) << DirE) &~ bb_from(File_A);
+    kings |= ((updown | b) << DirW) &~ bb_from(File_H);
+    KingMoves[s] = kings;
 
-    Bitboard kn = 0;
-    Bitboard b = bb_from(s);
-    Bitboard nn = b << (2 * DirN);
-    Bitboard ss = b << (2 * DirS);
-    Bitboard ww = b << (2 * DirW);
-    Bitboard ee = b << (2 * DirE);
+    Bitboard knights = 0;
+    Bitboard nn = b << 2 * DirN;
+    Bitboard ss = b << 2 * DirS;
+    Bitboard ww = (b << 2 * DirW) &~ (bb_from(File_H) | bb_from(File_G));
+    Bitboard ee = (b << 2 * DirE) &~ (bb_from(File_A) | bb_from(File_B));
 
-    kn |= (nn << DirE | ss << DirE) &~ bb_from(File_A);
-    kn |= (nn << DirW | ss << DirW) &~ bb_from(File_H);
-    kn |= (ee | ww) << DirN;
-    kn |= (ee | ww) << DirS;
+    knights |= ww << DirN;
+    knights |= ww << DirS;
+    knights |= ee << DirN;
+    knights |= ee << DirS;
+    knights |= (nn << DirE) &~ bb_from(File_A);
+    knights |= (nn << DirW) &~ bb_from(File_H);
+    knights |= (ss << DirE) &~ bb_from(File_A);
+    knights |= (ss << DirW) &~ bb_from(File_H);
 
-    KnightMoves[s] = kn;
+    KnightMoves[s] = knights;
 
-    Direction rook_dirs[]{DirN, DirS, DirE, DirW};
-    Direction bishop_dirs[]{DirNE, DirSW, DirSE, DirNW};
-    for (int i = 0; i < 4; ++i) {
-      Bitboard rook_moves = 0;
-      Bitboard b = bb_from(s);
-
-      for (int j = 0; j < distance_to_edge(s, rook_dirs[i]); j++) {
-        b <<= rook_dirs[i];
-        rook_moves |= b;
-      }
-
-      RookST[s][indexify<false>(rook_dirs[i])] = rook_moves;
-    }
-    for (int i = 0; i < 4; ++i) {
-      Bitboard bishop_moves = 0;
-      Bitboard b = bb_from(s);
-
-      for (int j = 0; j < distance_to_edge(s, bishop_dirs[i]); j++) {
-        b <<= bishop_dirs[i];
-        bishop_moves |= b;
-      }
-
-      BishopST[s][indexify<false>(bishop_dirs[i])] = bishop_moves;
-    }
+    // TODO sliders
   }
 }
 

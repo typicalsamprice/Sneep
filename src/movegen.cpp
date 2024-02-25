@@ -9,14 +9,10 @@ Bitboard RookST[64][4] = {};
 // This should be somewhat faster, hence templated.
 template <PieceT PT>
 Bitboard slider_attacks(const Square s, const Bitboard occ) {
-  if (!is_slider(PT)) {
-    if (ThrowErrors)
-      debug::error("Invalid PT templated for slider_attacks<PT>");
-    return 0;
-  }
-
   if (PT == Queen)
     return slider_attacks<Bishop>(s, occ) | slider_attacks<Rook>(s, occ);
+
+  Bitboard sb = bb_from(s);
 
   Bitboard rv = 0;
 
@@ -28,9 +24,30 @@ Bitboard slider_attacks(const Square s, const Bitboard occ) {
   for (const Direction dir : (PT == Bishop ?  bishDirs : rookDirs)) {
     Bitboard pot = ST[indexify<false>(dir)];
     Bitboard blocking = pot & occ;
+
+    if (!blocking) {
+      rv |= pot;
+      continue;
+    }
+
+    // Remove the right ray
+    Square concerned;
+    if (blocking > sb) {
+      concerned = lsb(blocking);
+    } else {
+      concerned = msb(blocking);
+    }
+
+    Bitboard fixed = pot ^ (PT == Bishop ? BishopST : RookST)[concerned][indexify<false>(dir)];
+    rv |= fixed;
   }
 
   return rv;
 }
+
+// NOTE: Do not add more instantiations.
+template Bitboard slider_attacks<Bishop>(const Square, const Bitboard);
+template Bitboard slider_attacks<Rook>(const Square, const Bitboard);
+template Bitboard slider_attacks<Queen>(const Square, const Bitboard);
 
 } // namespace Sneep

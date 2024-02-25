@@ -3,6 +3,7 @@
 #include "./types.h"
 #include "./bitboard.h"
 #include "./position.h"
+#include "./movegen.h"
 
 #if !defined(__cpp_lib_bitops) || __cpp_lib_bitops < 201907L
 #error "Bit operations not defined!"
@@ -20,7 +21,9 @@ int main(int argc, char **argv) {
 
   initialize_bitboards();
 
-  Position p;
-  std::cout << p << std::endl;
+  pretty_print(knight_attacks(H4));
+  pretty_print(pawn_attacks(E3, White));
+  pretty_print(king_attacks(E3));
+
   return 0;
 }
