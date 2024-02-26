@@ -39,14 +39,12 @@ Bitboard slider_attacks(const Square s, const Bitboard occ) {
     else
       last_hit = msb(blockers);
 
-    Bitboard rem = ray(last_hit, dir);
-    pot ^= rem;
+    pot &= ~ray(last_hit, dir);
 
     rv |= pot;
   }
 
   return rv;
-#undef ST
 }
 
 // NOTE: Do not add more instantiations.
