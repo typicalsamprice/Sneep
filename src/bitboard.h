@@ -42,7 +42,7 @@ constexpr Square lsb(Bitboard b) {
 
 constexpr Square msb(Bitboard b) {
   assert(b);
-  return Square(std::countl_zero(b));
+  return Square(64 - std::countl_zero(b));
 }
 
 // Misc. Bitboard stuff
