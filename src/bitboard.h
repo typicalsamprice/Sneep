@@ -7,6 +7,7 @@ namespace Sneep {
 extern Bitboard PawnMoves[64][2];
 extern Bitboard KnightMoves[64];
 extern Bitboard KingMoves[64];
+extern Bitboard BetweenBB[64][64];
 
 void initialize_bitboards();
 void pretty_print(Bitboard b);
@@ -19,6 +20,11 @@ constexpr Bitboard operator<<=(Bitboard &b, Direction d) {
   return b = b << d;
 }
 
+// Symmetric wrt a and b, so it shouldn't be hard...right?
+constexpr Bitboard bb_between(const Square a, const Square b) {
+  assert(is_ok(a) && is_ok(b));
+  return BetweenBB[a][b];
+}
 
 // Creation from different elements
 constexpr Bitboard bb_from(Square s) {
@@ -60,5 +66,11 @@ constexpr Bitboard mask_for(Direction d) {
 // Yes, these are the same except for return type. It's on purpose.
 constexpr bool more_than_one(Bitboard b) { return b & (b - 1); }
 constexpr Bitboard without_lsb(Bitboard b) { return b & (b - 1); }
+inline Square pop_lsb(Bitboard &b) {
+  assert(b);
+  Square s = lsb(b);
+  b &= b - 1;
+  return s;
+}
 
 }

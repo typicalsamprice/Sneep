@@ -11,6 +11,7 @@ namespace Sneep {
 Bitboard PawnMoves[64][2] = {};
 Bitboard KnightMoves[64] = {};
 Bitboard KingMoves[64] = {};
+Bitboard BetweenBB[64][64] = {};
 
 namespace {
 inline Bitboard make_pawn_attacks(Square s, Color c) {
@@ -77,7 +78,28 @@ void initialize_bitboards() {
       }
       BishopST[s][index(d)] = att;
     }
+
   }
+  for (Square s1 = A1; s1 <= H8; ++s1) // This happens AFTER the rest, since we need all the BishopST/RookST initialized
+    for (Square s2 = A1; s2 <= H8; ++s2) {
+      // Probably exists a better way to iterate over all the dirs, don't care rn though.
+      if (s1 == s2) {
+        BetweenBB[s1][s2] = 0;
+        continue;
+      }
+      Bitboard bw = 0;
+      Direction dirs[]{DirE, DirN, DirW, DirS, DirNE, DirNW, DirSE, DirSW};
+      for (Direction d : dirs) {
+        Bitboard r = ray(s1, d);
+        if (r & bb_from(s2)) {
+          // We know this is the "right" direction
+          bw = r & ray(s2, ~d);
+          break;
+        }
+      }
+
+      BetweenBB[s1][s2] = BetweenBB[s2][s1] = bw;
+    }
 }
 
 void pretty_print(const Bitboard b) {

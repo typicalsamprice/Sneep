@@ -22,7 +22,22 @@ public:
   uint16_t halfmoves;
 
   CastleRights cr;
+
+  bool is_ok() const;
 };
+
+inline bool State::is_ok() const {
+  if (halfmoves > 75) // Shouldn't happen...we draw before then
+    return false;
+
+  if (popcnt(checkers) > 2) // How even
+    return false;
+
+  if (ply > 20000 && ThrowExtraErrors) // I think the mathematically longest possible game is like 7500 moves?
+    return false;
+
+  return true;
+}
 
 class Position {
 private:
@@ -30,7 +45,7 @@ private:
   Bitboard colors_bb[2];
   Piece squares[64];
 
-  Color to_move;
+  Color side_to_move;
 
   uint16_t _fullmoves;
 
@@ -56,6 +71,10 @@ private:
   Bitboard sliders_to(Square s, Bitboard occ) const;
 
 public:
+  Color to_move() const { return side_to_move; };
+  Square ep() const { return state->ep; }
+  CastleRights castle_rights() const { return state->cr; }
+
   Position(std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
   // Note to reader: When I went back to SF to look at the operator overload to

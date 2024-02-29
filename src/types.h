@@ -123,6 +123,18 @@ constexpr int index(Direction d) {
   return indexify<false>(d);
 }
 
+constexpr Direction operator~(Direction d) {
+  // Returns the "opposite" direction
+  return d == DirN ? DirS
+    : d == DirS ? DirN
+    : d == DirE ? DirW
+    : d == DirW ? DirE
+    : d == DirNE ? DirSW
+    : d == DirNW ? DirSE
+    : d == DirSE ? DirNW
+    : DirNE; // Last is implicitly when d == DirSW
+}
+
 constexpr Direction operator*(int i, Direction d) {
   return Direction(int(d) * i);
 }
@@ -162,7 +174,7 @@ constexpr Rank relative_to(Rank r, Color c) {
 
 constexpr bool is_ok(Square s) {
   assert(s <= NO_SQUARE); // Maybe catch some UB in debug modes
-  return s < NO_SQUARE;
+  return s >= A1 && s < NO_SQUARE;
 }
 
 constexpr int distance(Square a, Square b) {
@@ -198,7 +210,7 @@ public:
   Piece(PieceT p, Color c) : type(p), color(c){};
   Piece(char c);
 
-  bool operator==(const Piece& that) { return color == that.color && type == that.type; }
+  bool operator==(const Piece& that) const noexcept { return color == that.color && type == that.type; }
 
   Score value() const;
   char print() const;
@@ -307,8 +319,14 @@ enum CastleRights {
   Black_OO = 4,
   Black_OOO = 8,
   Castle_OO = White_OO | Black_OO,
-  Castle_OOO = White_OOO | Black_OOO
+  Castle_OOO = White_OOO | Black_OOO,
+  White_CR = White_OO | White_OOO,
+  Black_CR = Black_OO | Black_OOO
 };
+
+constexpr bool contains(CastleRights cr, CastleRights has) {
+  return (int(cr) & int(has)) > 0;
+}
 
 inline CastleRights operator|(CastleRights cr, CastleRights cr2) {
   return CastleRights(int(cr) | int(cr2));

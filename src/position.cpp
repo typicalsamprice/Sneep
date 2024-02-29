@@ -35,7 +35,7 @@ bool Position::is_legal(Move m, bool assumePL) const {
 bool Position::is_legal(Move m) const { return is_legal(m, false); }
 bool Position::is_pseudo_legal(Move m) const {
   Piece mp = moved_piece(m);
-  if (!is_ok(mp) || mp.color != to_move) {
+  if (!is_ok(mp) || mp.color != to_move()) {
     return false; // Have to move correct color
   }
 
@@ -91,19 +91,18 @@ Position::Position(std::string fenString) {
     // in this method call c) It was actually above, construction from a [char]
     // wasn't precise
 
-    // Mother Freaking Heck! There was another bug I *thought* was on this line (unrelated to the segfault)
-    // and it was because C++ doesn't freaking allow constructor chaining! Who would have thought. Now, see how I found out:
+    // Mother Freaking Heck! There was another bug I *thought* was on this line
+    // (unrelated to the segfault) and it was because C++ doesn't freaking allow
+    // constructor chaining! Who would have thought. Now, see how I found out:
     // https://stackoverflow.com/questions/187640/default-parameters-with-c-constructors
-    // Yeah, that's why it has a default constructor! :) Wasted only an hour or three on this.
+    // Yeah, that's why it has a default constructor! :) Wasted only an hour or
+    // three on this.
     put_piece(p, s);
     ++s;
   }
 
-  #warning This returns early
-  return;
-
   fen >> tok;
-  to_move = (tok == 'w' ? White : Black);
+  side_to_move = (tok == 'w' ? White : Black);
 
   if (ThrowExtraErrors)
     if (tok != 'w' && tok != 'b')
@@ -125,14 +124,13 @@ Position::Position(std::string fenString) {
       state->cr |= Black_OOO;
       break;
     default:
-      if (ThrowErrors)
-        assert(0 && "Invalid Castling character in FEN.");
+      debug::error(tok);
     }
   }
 
   fen >> std::skipws >> state->halfmoves >> _fullmoves;
 
-  // TODO parse rest of FEN
+  assert(state->is_ok() && "Invalid state produced by FEN");
 }
 
 void Position::put_piece(Piece p, Square s) {
@@ -148,34 +146,35 @@ void Position::put_piece(Piece p, Square s) {
 }
 
 Bitboard Position::attacks_to(Square s, Bitboard occ) const {
-     Bitboard rv = 0;
-     // Compiler should auto-reuse that value, since this is all `const` wrt Position.
-     Bitboard rq_att = sliders_to(s, occ) & pieces(Rook, Queen);
-     Bitboard bq_att = sliders_to(s, occ) & pieces(Bishop, Queen);
+  Bitboard rv = 0;
+  // Compiler should auto-reuse that value, since this is all `const` wrt
+  // Position.
+  Bitboard rq_att = sliders_to(s, occ) & pieces(Rook, Queen);
+  Bitboard bq_att = sliders_to(s, occ) & pieces(Bishop, Queen);
 
-     rv |= rq_att | bq_att;
+  rv |= rq_att | bq_att;
 
-     Bitboard wpawns = pieces(White, Pawn) & pawn_attacks(s, Black);
-     Bitboard bpawns = pieces(Black, Pawn) & pawn_attacks(s, White);
+  Bitboard wpawns = pieces(White, Pawn) & pawn_attacks(s, Black);
+  Bitboard bpawns = pieces(Black, Pawn) & pawn_attacks(s, White);
 
-     Bitboard knights = pieces(Knight) & knight_attacks(s);
-     Bitboard king = pieces(King) & king_attacks(s);
+  Bitboard knights = pieces(Knight) & knight_attacks(s);
+  Bitboard king = pieces(King) & king_attacks(s);
 
-     rv |= wpawns | bpawns;
-     rv |= knights | king;
+  rv |= wpawns | bpawns;
+  rv |= knights | king;
 
-     rv |= sliders_to(s, occ);
+  rv |= sliders_to(s, occ);
 
-     return rv;
+  return rv;
 }
 
 Bitboard Position::sliders_to(Square s, Bitboard occ) const {
-     Bitboard rv = 0;
+  Bitboard rv = 0;
 
-     rv |= slider_attacks<Bishop>(s, occ) & pieces(Bishop, Queen);
-     rv |= slider_attacks<Rook>(s, occ) & pieces(Rook, Queen);
+  rv |= slider_attacks<Bishop>(s, occ) & pieces(Bishop, Queen);
+  rv |= slider_attacks<Rook>(s, occ) & pieces(Rook, Queen);
 
-     return rv;
+  return rv;
 }
 // }}}
 
