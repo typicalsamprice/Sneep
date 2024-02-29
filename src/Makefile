@@ -8,9 +8,9 @@ EXTRA_DEFS = -DTHROW_MANY_ERRS
 LIBS = -lgtest
 
 CXX = clang++
-CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS)
+CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS) -fsanitize=undefined -fwrapv
 
-LDFLAGS = -flto
+LDFLAGS = -flto -fsanitize=undefined
 
 EXECUTABLE_NAME = sneep.out
 TEST_EXECUTABLE_NAME = test.out
@@ -26,18 +26,18 @@ OBJ_FILES_T = $(CPP_FILES_T:.cpp=.o)
 .PHONY: clean test lines
 
 $(EXECUTABLE_NAME): $(OBJ_FILES)
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS) $(CXXFLAGS)
 
 test: $(TEST_EXECUTABLE_NAME)
 $(TEST_EXECUTABLE_NAME): $(OBJ_FILES_T)
-	$(CXX) -o $@ $^ $(LIBS)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS) $(CXXFLAGS)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 clean:
-	rm -v $(EXECUTABLE_NAME)
-	rm -v $(wildcard *.o)
+	rm -vf $(EXECUTABLE_NAME)
+	rm -vf $(wildcard *.o)
 
 lines:
 	cloc ../**
