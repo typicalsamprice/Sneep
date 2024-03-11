@@ -14,6 +14,7 @@ enum GenType {
   Captures,
   Checks,
   Quiet,
+  All
 };
 
 typedef std::vector<Move> MoveList;

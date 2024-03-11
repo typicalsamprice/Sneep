@@ -12,6 +12,7 @@ Bitboard PawnMoves[64][2] = {};
 Bitboard KnightMoves[64] = {};
 Bitboard KingMoves[64] = {};
 Bitboard BetweenBB[64][64] = {};
+Bitboard LineBB[64][64] = {};
 
 namespace {
 inline Bitboard make_pawn_attacks(Square s, Color c) {
@@ -88,17 +89,20 @@ void initialize_bitboards() {
         continue;
       }
       Bitboard bw = 0;
+      Bitboard line = 0;
       Direction dirs[]{DirE, DirN, DirW, DirS, DirNE, DirNW, DirSE, DirSW};
       for (Direction d : dirs) {
         Bitboard r = ray(s1, d);
         if (r & bb_from(s2)) {
           // We know this is the "right" direction
           bw = r & ray(s2, ~d);
+          line = ray(s2, ~d) | ray(s1, d);
           break;
         }
       }
 
       BetweenBB[s1][s2] = BetweenBB[s2][s1] = bw;
+      LineBB[s1][s2] = LineBB[s2][s1] = line;
     }
 }
 
@@ -113,5 +117,4 @@ void pretty_print(const Bitboard b) {
     std::cout << "|\n" << sep;
   }
 }
-
 } // namespace Sneep

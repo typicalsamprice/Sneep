@@ -4,13 +4,24 @@
 # @file
 # @version 0.1
 
-EXTRA_DEFS = -DTHROW_MANY_ERRS
+EXTRA_DEFS = -DTHROW_MANY_ERRS -DQUICK_STATE_OK_CHECK
+
+# Options:
+# THROW_ERRS: Throw extra errors/debug statements.
+# THROW_MANY_ERRS: Implicitly enables THROW_ERRS, should be obvious.
+# [OP] OPTIMIZE_EP_MOVEGEN: Assume ideal conditions for EP movegen. [unstable]
+# [OP] QUICK_STATE_OK_CHECK: Don't check all State values.
+# ALL_OPTIMIZATIONS: Enable all options with [OP] tags
+# NDEBUG: Classically, it disables THROW_ERRS and THROW_MANY_ERRS
+# 		  Also just disables `assert` statements as usual.
+# MAGICS: Use Magic Bitboards [WIP]
+
 LIBS = -lgtest
 
-CXX = clang++
-CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS) -fsanitize=undefined -fwrapv
+LDFLAGS = -flto -fsanitize=undefined -fwrapv
 
-LDFLAGS = -flto -fsanitize=undefined
+CXX = clang++
+CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS) $(LDFLAGS)
 
 EXECUTABLE_NAME = sneep.out
 TEST_EXECUTABLE_NAME = test.out

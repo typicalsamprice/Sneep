@@ -41,6 +41,27 @@ constexpr bool AssertionsEnabled = true;
 constexpr bool AssertionsEnabled = false;
 #endif
 
+#if defined(QUICK_STATE_OK_CHECK) || defined(ALL_OPTIMIZATIONS)
+constexpr bool QuickStateCheck = true;
+#else
+constexpr bool QuickStateCheck = false;
+#endif
+
+// Should one always assume if EP is set, then EP moves need to be generated?
+// Otherwise, don't bother with the special generation.
+#if defined(OPTIMIZE_EP_MOVEGEN) || defined(ALL_OPTIMIZATIONS)
+constexpr bool OptimizeEPMovegen = true;
+#else
+constexpr bool OptimizeEPMovegen = false;
+#endif
+
+#if defined(MAGICS)
+#error "Magics not working yet"
+constexpr bool UseMagics = true;
+#else
+constexpr bool UseMagics = false;
+#endif
+
 // }} IFDEF'd garbage ends here
 
 typedef uint64_t Bitboard;
@@ -79,39 +100,38 @@ enum Direction {
 };
 
 // To help with slider stuff
-template<bool CONSIDER_ALL>
-inline int indexify(Direction d) {
+template <bool CONSIDER_ALL> inline int indexify(Direction d) {
   int rv;
 
   switch (d) {
-    case DirN:
-      rv = 0;
-      break;
-    case DirS:
-      rv = 1;
-      break;
-    case DirE:
-      rv = 2;
-      break;
-    case DirW:
-      rv = 3;
-      break;
-    case DirNE:
-      rv = CONSIDER_ALL ? 4 : 0;
-      break;
-    case DirNW:
-      rv = CONSIDER_ALL ? 5 : 1;
-      break;
-    case DirSE:
-      rv = CONSIDER_ALL ? 6 : 2;
-      break;
-    case DirSW:
-      rv = CONSIDER_ALL ? 7 : 3;
-      break;
-    default:
-      if (ThrowErrors)
-        debug::error("Invalid direction passed");
-      break;
+  case DirN:
+    rv = 0;
+    break;
+  case DirS:
+    rv = 1;
+    break;
+  case DirE:
+    rv = 2;
+    break;
+  case DirW:
+    rv = 3;
+    break;
+  case DirNE:
+    rv = CONSIDER_ALL ? 4 : 0;
+    break;
+  case DirNW:
+    rv = CONSIDER_ALL ? 5 : 1;
+    break;
+  case DirSE:
+    rv = CONSIDER_ALL ? 6 : 2;
+    break;
+  case DirSW:
+    rv = CONSIDER_ALL ? 7 : 3;
+    break;
+  default:
+    if (ThrowErrors)
+      debug::error("Invalid direction passed");
+    break;
   }
 
   return rv;
@@ -119,38 +139,40 @@ inline int indexify(Direction d) {
 
 // Index respective to Rook/Bishop sliders
 // Used to index into Attack-Occ Structures based on Direction
-constexpr int index(Direction d) {
-  return indexify<false>(d);
-}
+constexpr int index(Direction d) { return indexify<false>(d); }
 
 constexpr Direction operator~(Direction d) {
   // Returns the "opposite" direction
-  return d == DirN ? DirS
-    : d == DirS ? DirN
-    : d == DirE ? DirW
-    : d == DirW ? DirE
-    : d == DirNE ? DirSW
-    : d == DirNW ? DirSE
-    : d == DirSE ? DirNW
-    : DirNE; // Last is implicitly when d == DirSW
+  return d == DirN    ? DirS
+         : d == DirS  ? DirN
+         : d == DirE  ? DirW
+         : d == DirW  ? DirE
+         : d == DirNE ? DirSW
+         : d == DirNW ? DirSE
+         : d == DirSE ? DirNW
+                      : DirNE; // Last is implicitly when d == DirSW
 }
 
-constexpr Direction operator*(int i, Direction d) {
-  return Direction(int(d) * i);
+constexpr int operator*(int i, Direction d) {
+  return int(d) * i;
 }
-constexpr Direction operator+(Direction d1, Direction d2) {
-  return Direction(int(d1) + int(d2));
+constexpr int operator+(Direction d1, Direction d2) {
+  return int(d1) + int(d2);
 }
 
-constexpr Direction pawn_push(Color c) {
-  return c == White ? DirN : DirS;
-}
+constexpr Direction pawn_push(Color c) { return c == White ? DirN : DirS; }
 
 // Just squares + file/rank things
 constexpr Square operator+(File f, Rank r) {
   return Square(int(f) + (int(r) << 3));
 }
 
+constexpr Square operator+(Square s, int offset) {
+  return Square(int(s) + offset);
+}
+constexpr Square operator-(Square s, int offset) {
+  return Square(int(s) - offset);
+}
 constexpr Square operator+(Square s, Direction d) {
   return Square(int(s) + int(d));
 }
@@ -158,7 +180,9 @@ constexpr Square operator-(Square s, Direction d) {
   return Square(int(s) - int(d));
 }
 inline Square operator+=(Square &s, Direction d) { return s = s + d; }
+inline Square operator+=(Square &s, int d) { return s = s + d; }
 inline Square operator-=(Square &s, Direction d) { return s = s - d; }
+inline Square operator-=(Square &s, int d) { return s = s - d; }
 
 constexpr File file_of(Square s) { return File(int(s) & 7); }
 constexpr Rank rank_of(Square s) {
@@ -183,15 +207,19 @@ constexpr int distance(Square a, Square b) {
 }
 
 constexpr int distance_to_edge(Square s, Direction d) {
-  return d == DirN ? 7 - rank_of(s)
-    : d == DirS ? rank_of(s)
-    : d == DirE ? 7 - file_of(s)
-    : d == DirW ? file_of(s)
-    : d == DirNW ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirW))
-    : d == DirNE ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirE))
-    : d == DirSE ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirE))
-    : d == DirSW ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirW))
-    : -1;
+  return d == DirN   ? 7 - rank_of(s)
+         : d == DirS ? rank_of(s)
+         : d == DirE ? 7 - file_of(s)
+         : d == DirW ? file_of(s)
+         : d == DirNW
+             ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirW))
+         : d == DirNE
+             ? std::min(distance_to_edge(s, DirN), distance_to_edge(s, DirE))
+         : d == DirSE
+             ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirE))
+         : d == DirSW
+             ? std::min(distance_to_edge(s, DirS), distance_to_edge(s, DirW))
+             : -1;
 }
 
 constexpr Square relative_to(Square s, Color c) {
@@ -210,7 +238,9 @@ public:
   Piece(PieceT p, Color c) : type(p), color(c){};
   Piece(char c);
 
-  bool operator==(const Piece& that) const noexcept { return color == that.color && type == that.type; }
+  bool operator==(const Piece &that) const noexcept {
+    return color == that.color && type == that.type;
+  }
 
   Score value() const;
   char print() const;
@@ -257,9 +287,7 @@ inline bool is_ok(Piece p) {
   return p.type < ALL_TYPES;
 }
 
-constexpr bool is_slider(PieceT pt) {
-  return pt >= Bishop && pt <= Queen;
-}
+constexpr bool is_slider(PieceT pt) { return pt >= Bishop && pt <= Queen; }
 
 enum MoveT { Normal, EnPassant, Castle, Promotion };
 
@@ -272,8 +300,10 @@ class Move {
   PieceT _promo;
 
 public:
-  Move(Square from, Square to) : _from(from), _to(to){};
-  Move(Square from, Square to, MoveT type) : _from(from), _to(to), _type(type) {
+  Move(Square from, Square to)
+      : _from(from), _to(to), _type(Normal), _promo(NO_TYPE){};
+  Move(Square from, Square to, MoveT type)
+      : _from(from), _to(to), _type(type), _promo(NO_TYPE) {
     if (ThrowExtraErrors)
       assert(type != Promotion);
   };
@@ -323,6 +353,13 @@ enum CastleRights {
   White_CR = White_OO | White_OOO,
   Black_CR = Black_OO | Black_OOO
 };
+
+constexpr CastleRights queenside(Color c) {
+  return CastleRights(White_OOO << (int(c) * 2));
+}
+constexpr CastleRights kingside(Color c) {
+  return CastleRights(White_OO << (int(c) * 2));
+}
 
 constexpr bool contains(CastleRights cr, CastleRights has) {
   return (int(cr) & int(has)) > 0;

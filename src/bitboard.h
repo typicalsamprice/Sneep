@@ -8,6 +8,7 @@ extern Bitboard PawnMoves[64][2];
 extern Bitboard KnightMoves[64];
 extern Bitboard KingMoves[64];
 extern Bitboard BetweenBB[64][64];
+extern Bitboard LineBB[64][64];
 
 void initialize_bitboards();
 void pretty_print(Bitboard b);
@@ -24,6 +25,10 @@ constexpr Bitboard operator<<=(Bitboard &b, Direction d) {
 constexpr Bitboard bb_between(const Square a, const Square b) {
   assert(is_ok(a) && is_ok(b));
   return BetweenBB[a][b];
+}
+constexpr Bitboard bb_line(const Square a, const Square b) {
+  assert(is_ok(a) && is_ok(b));
+  return LineBB[a][b];
 }
 
 // Creation from different elements
@@ -72,5 +77,4 @@ inline Square pop_lsb(Bitboard &b) {
   b &= b - 1;
   return s;
 }
-
 }

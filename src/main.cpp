@@ -20,8 +20,10 @@ int main(int argc, char **argv) {
     << "\nThrowExtraErrors: " << ThrowExtraErrors << std::endl;
 
   initialize_bitboards();
+  Position p;
 
-  pretty_print(slider_attacks<Bishop>(Sneep::E3, bb_from(D2) | bb_from(D4)));
+  Move m(E2, E4);
+  std::cout << p.is_legal(m, true);
 
   return 0;
 }

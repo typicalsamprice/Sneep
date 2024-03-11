@@ -16,7 +16,7 @@ static inline void add_promos(MoveList &moves, const Square from, const Square t
 
 template <GenType T>
 MoveList generate_moves(const Position &pos) {
-  constexpr bool DoCaps = T == Legal || T == Captures;
+  constexpr bool DoCaps = T == Legal || T == Captures || T == All;
 
   const Color us = pos.to_move();
   const Bitboard pawns = pos.pieces(us, Pawn);
@@ -172,9 +172,8 @@ SkipCapPromoGen:
 }
 
 
-template MoveList generate_moves<Quiet>(const Position &pos);
 template MoveList generate_moves<Captures>(const Position &pos);
-template MoveList generate_moves<Checks>(const Position &pos);
+template MoveList generate_moves<All>(const Position &pos);
 #warning "Implement generate_moves<Legal>"
 
 Bitboard ray(const Square s, const Direction d) {

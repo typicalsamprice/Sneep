@@ -3,7 +3,8 @@
 #include "./bitboard.h"
 #include "./types.h"
 #include <cstdint>
-#include <memory>
+#include <optional>
+#include <vector>
 
 namespace Sneep {
 
@@ -18,10 +19,12 @@ public:
   // Bitboard check_squares[6];
 
   Square ep;
-  uint16_t ply;
   uint16_t halfmoves;
 
   CastleRights cr;
+  std::optional<Piece> captured;
+
+  State* prev;
 
   bool is_ok() const;
 };
@@ -33,8 +36,19 @@ inline bool State::is_ok() const {
   if (popcnt(checkers) > 2) // How even
     return false;
 
-  if (ply > 20000 && ThrowExtraErrors) // I think the mathematically longest possible game is like 7500 moves?
+  if (QuickStateCheck)
+    goto AfterPinnerBlockerCheck;
+
+  if (popcnt(blockers[White]) > 8)
     return false;
+  if (popcnt(blockers[Black]) > 8)
+    return false;
+  if (popcnt(pinners[White]) > 8)
+    return false;
+  if (popcnt(pinners[Black]) > 8)
+    return false;
+
+AfterPinnerBlockerCheck:
 
   return true;
 }
@@ -49,33 +63,44 @@ private:
 
   uint16_t _fullmoves;
 
-  std::unique_ptr<State> state;
+  State* state;
+
+  std::vector<Move> hist;
 
   void setup_state();
   void update_state();
-
-  bool is_legal(Move m) const;
-  bool is_legal(Move m, bool assumePL) const;
-  bool is_pseudo_legal(Move m) const;
-
-  void do_move(Move m);
-  void undo_move(Move m);
+    // Not `const` since we pass a reference to part of State,
+    // which is is part of ourself.
+  Bitboard calc_pinners_blockers(Bitboard &pinners, const Color us);
 
   void put_piece(Piece p, Square s);
   Piece remove_piece(Square s);
-
-  Piece moved_piece(Move m) const;
-
-  Bitboard attacks_to(Square s) const;
-  Bitboard attacks_to(Square s, Bitboard occ) const;
-  Bitboard sliders_to(Square s, Bitboard occ) const;
+  template<bool Do> void do_castle(const CastleRights castle);
 
 public:
   Color to_move() const { return side_to_move; };
   Square ep() const { return state->ep; }
   CastleRights castle_rights() const { return state->cr; }
 
-  Position(std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  Square king_of(const Color col) const { return lsb(pieces(col, King)); };
+
+  // Cannot just assign a string to a Position and expect it to work out.
+  explicit Position(
+      std::string fen =
+          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+  void do_move(const Move m);
+  void undo_move(); // Automatically undoes the last Move.
+
+  bool is_legal(const Move m, const bool checkPL) const;
+  bool is_pseudo_legal(Move m) const;
+
+  Piece moved_piece(Move m) const;
+  std::optional<Piece> captured_piece(Move m) const;
+
+  Bitboard attacks_to(Square s) const;
+  Bitboard attacks_to(Square s, Bitboard occ) const;
+  Bitboard sliders_to(Square s, Bitboard occ) const;
 
   // Note to reader: When I went back to SF to look at the operator overload to
   // print out, this is what they USED to have... now they have multiple
@@ -111,9 +136,23 @@ inline Piece Position::moved_piece(Move m) const {
   assert(m.is_ok());
   return squares[m.from()];
 }
+inline std::optional<Piece> Position::captured_piece(Move m) const {
+  // This is an `optional` to furthur encourage CHECKING if there is a valid
+  // captured piece not for any other good reason. If they were more ergonomic
+  // in C++, I would 100% use something like Rust's Option<T> or Error<T, E>
+  // wayyy more often.
+  Square capture_square = m.type() == EnPassant ? (file_of(m.to()) + rank_of(m.from())) : m.to();
+  assert(m.is_ok());
+  if (empty(capture_square))
+    return {};
+  return piece_on(capture_square);
+}
 
 // Repr-related
-inline Bitboard Position::pieces(PieceT pt) const { return pieces_bb[pt]; }
+inline Bitboard Position::pieces(PieceT pt) const {
+  assert(pt != King || popcnt(pieces_bb[King]) == 2);
+  return pieces_bb[pt];
+}
 template <typename... PieceTypes>
 inline Bitboard Position::pieces(PieceT pt, PieceTypes... pts) const {
   // Recursively call this function, ORing with itself
@@ -148,4 +187,7 @@ inline Bitboard Position::attacks_to(Square s) const {
 
 // Misc
 inline uint16_t Position::moves() const { return _fullmoves; }
+
+// This is used for testing
+template <bool Root> uint64_t perft(Position &pos, int depth);
 } // namespace Sneep
