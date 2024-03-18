@@ -9,15 +9,15 @@ namespace Sneep {
 Bitboard BishopST[64][4] = {};
 Bitboard RookST[64][4] = {};
 
-static inline void add_promos(MoveList &moves, const Square from, const Square to) {
+static inline void add_promos(MoveList &moves, const Square from,
+                              const Square to) {
   moves.push_back(Move(from, to, Promotion, Knight));
   moves.push_back(Move(from, to, Promotion, Bishop));
   moves.push_back(Move(from, to, Promotion, Rook));
   moves.push_back(Move(from, to, Promotion, Queen));
 }
 
-template <GenType T>
-MoveList generate_moves(const Position &pos) {
+template <GenType T> MoveList generate_moves(const Position &pos) {
   constexpr bool DoCaps = T == Legal || T == Captures || T == All;
 
   const Color us = pos.to_move();
@@ -25,11 +25,12 @@ MoveList generate_moves(const Position &pos) {
   Bitboard seventh = pawns & bb_from(relative_to(Rank_7, us));
   const Bitboard rest = pawns ^ seventh;
 
-  Bitboard up = (rest << pawn_push(us)) &~ pos.pieces();
-  Bitboard up2 = ((up & bb_from(relative_to(Rank_3, us))) << pawn_push(us)) &~ pos.pieces();
+  Bitboard up = (rest << pawn_push(us)) & ~pos.pieces();
+  Bitboard up2 = ((up & bb_from(relative_to(Rank_3, us))) << pawn_push(us)) &
+                 ~pos.pieces();
 
-  Bitboard attacksE = (up << DirE) &~ mask_for(DirE) & pos.pieces(~us);
-  Bitboard attacksW = (up << DirW) &~ mask_for(DirW) & pos.pieces(~us);
+  Bitboard attacksE = (up << DirE) & ~mask_for(DirE) & pos.pieces(~us);
+  Bitboard attacksW = (up << DirW) & ~mask_for(DirW) & pos.pieces(~us);
   MoveList moves;
 
   while (up) {
@@ -61,9 +62,10 @@ MoveList generate_moves(const Position &pos) {
     moves.push_back(m);
   }
 
-
   // Generate EP
-  if (/* DoCaps && *//* Technically no change due to the goto, but may help with no runtime loss (DoCaps is constexpr)  */ pos.ep() != NO_SQUARE)  {
+  if (/* DoCaps && */ /* Technically no change due to the goto, but may help
+                         with no runtime loss (DoCaps is constexpr)  */
+      pos.ep() != NO_SQUARE) {
     Bitboard caps = pawn_attacks(pos.ep(), ~us) & pawns;
     while (caps) {
       Square from = pop_lsb(caps);
@@ -74,7 +76,7 @@ MoveList generate_moves(const Position &pos) {
 
 SkipPawnCaps:
 
-  Bitboard promup = seventh << pawn_push(us) &~ pos.pieces();
+  Bitboard promup = seventh << pawn_push(us) & ~pos.pieces();
   Bitboard attackE = seventh << pawn_push(us) << DirE & pos.pieces(~us);
   Bitboard attackW = seventh << pawn_push(us) << DirW & pos.pieces(~us);
 
@@ -115,12 +117,12 @@ SkipCapPromoGen:
     }
   }
 
-  Bitboard rook_q = pos.pieces(us, Rook, Queen);
   Bitboard bish_q = pos.pieces(us, Bishop, Queen);
+  Bitboard rook_q = pos.pieces(us, Rook, Queen);
 
-  while (bish_q)  {
+  while (bish_q) {
     Square bq = pop_lsb(bish_q);
-      assert(is_ok(bq));
+    assert(is_ok(bq));
     Bitboard atts = slider_attacks<Bishop>(bq, pos.pieces()) & maskoff;
     while (atts) {
       Square t = pop_lsb(atts);
@@ -128,9 +130,9 @@ SkipCapPromoGen:
       moves.push_back(Move(bq, t));
     }
   }
-  while (rook_q)  {
+  while (rook_q) {
     Square rq = pop_lsb(rook_q);
-      assert(is_ok(rq));
+    assert(is_ok(rq));
     Bitboard atts = slider_attacks<Rook>(rq, pos.pieces()) & maskoff;
     while (atts) {
       Square t = pop_lsb(atts);
@@ -173,18 +175,17 @@ SkipCapPromoGen:
   return moves;
 }
 
-
 template MoveList generate_moves<Captures>(const Position &pos);
 template MoveList generate_moves<All>(const Position &pos);
 
-template<>
-MoveList generate_moves<Legal>(const Position &pos) {
+template <> MoveList generate_moves<Legal>(const Position &pos) {
   MoveList moves = generate_moves<All>(pos);
 
   // TODO Actually not check every single one
-  moves.erase(std::remove_if(moves.begin(), moves.end(), [&pos](Move m){ return !pos.is_legal(m, false); }),
-    moves.end());
-
+  moves.erase(
+      std::remove_if(moves.begin(), moves.end(),
+                     [&pos](Move m) { return !pos.is_legal(m, false); }),
+      moves.end());
 
   return moves;
 }
@@ -204,9 +205,9 @@ Bitboard slider_attacks(const Square s, const Bitboard occ) {
 
   Bitboard rv = 0;
 
-  Direction bishDirs[4] = { DirNE, DirSE, DirSW, DirNW };
-  Direction rookDirs[4] = { DirN, DirS, DirE, DirW };
-  for (const Direction dir : (PT == Bishop ?  bishDirs : rookDirs)) {
+  Direction bishDirs[4] = {DirNE, DirSE, DirSW, DirNW};
+  Direction rookDirs[4] = {DirN, DirS, DirE, DirW};
+  for (const Direction dir : (PT == Bishop ? bishDirs : rookDirs)) {
     Bitboard pot = ray(s, dir);
 
     Bitboard blockers = pot & occ;

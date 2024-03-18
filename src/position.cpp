@@ -298,7 +298,8 @@ void Position::do_move(Move m) {
     do_castle<true>(castle);
     // TODO
   } else {
-    put_piece(remove_piece(from), to);
+    remove_piece(from);
+    put_piece(movp, to);
   }
 
   // OPT: Skip check, always set?

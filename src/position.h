@@ -180,9 +180,10 @@ inline Piece Position::remove_piece(Square s) {
   Piece p = piece_on(s);
   Bitboard bs = bb_from(s);
 
-  if (is_ok(p)) {
+  if (!empty(s)) {
     squares[s] = Piece();
     pieces_bb[p.type] ^= bs;
+    pieces_bb[ALL_TYPES] ^= bs;
     colors_bb[p.color] ^= bs;
   }
 
