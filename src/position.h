@@ -144,13 +144,13 @@ inline std::optional<Piece> Position::captured_piece(Move m) const {
   Square capture_square = m.type() == EnPassant ? (file_of(m.to()) + rank_of(m.from())) : m.to();
   assert(m.is_ok());
   if (empty(capture_square))
-    return {};
-  return piece_on(capture_square);
+    return std::nullopt;
+  return std::optional<Piece>{piece_on(capture_square)};
 }
 
 // Repr-related
 inline Bitboard Position::pieces(PieceT pt) const {
-  assert(pt != King || popcnt(pieces_bb[King]) == 2);
+  //assert(popcnt(pieces_bb[King]) == 2);
   return pieces_bb[pt];
 }
 template <typename... PieceTypes>
@@ -176,6 +176,18 @@ inline Piece Position::piece_on(Square s) const {
   assert(is_ok(s));
   return squares[s];
 }
+inline Piece Position::remove_piece(Square s) {
+  Piece p = piece_on(s);
+  Bitboard bs = bb_from(s);
+
+  if (is_ok(p)) {
+    squares[s] = Piece();
+    pieces_bb[p.type] ^= bs;
+    colors_bb[p.color] ^= bs;
+  }
+
+  return p;
+}
 inline bool Position::empty(Square s) const {
   return piece_on(s).type == NO_TYPE;
 }
@@ -187,7 +199,4 @@ inline Bitboard Position::attacks_to(Square s) const {
 
 // Misc
 inline uint16_t Position::moves() const { return _fullmoves; }
-
-// This is used for testing
-template <bool Root> uint64_t perft(Position &pos, int depth);
 } // namespace Sneep

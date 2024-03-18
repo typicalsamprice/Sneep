@@ -2,6 +2,8 @@
 #include "bitboard.h"
 #include "types.h"
 
+#include <algorithm>
+
 namespace Sneep {
 
 Bitboard BishopST[64][4] = {};
@@ -174,7 +176,18 @@ SkipCapPromoGen:
 
 template MoveList generate_moves<Captures>(const Position &pos);
 template MoveList generate_moves<All>(const Position &pos);
-#warning "Implement generate_moves<Legal>"
+
+template<>
+MoveList generate_moves<Legal>(const Position &pos) {
+  MoveList moves = generate_moves<All>(pos);
+
+  // TODO Actually not check every single one
+  moves.erase(std::remove_if(moves.begin(), moves.end(), [&pos](Move m){ return !pos.is_legal(m, false); }),
+    moves.end());
+
+
+  return moves;
+}
 
 Bitboard ray(const Square s, const Direction d) {
   int i = indexify<true>(d);

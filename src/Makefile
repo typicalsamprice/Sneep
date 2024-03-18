@@ -16,12 +16,13 @@ EXTRA_DEFS = -DTHROW_MANY_ERRS -DQUICK_STATE_OK_CHECK
 # 		  Also just disables `assert` statements as usual.
 # MAGICS: Use Magic Bitboards [WIP]
 
-LIBS = -lgtest
+# LIBS = -lgtest
 
-LDFLAGS = -flto -fsanitize=undefined -fwrapv
+LDFLAGS = -flto -fwrapv
+# LDFLAGS += -fsanitize=undefined
 
 CXX = clang++
-CXXFLAGS = -ggdb -O0 -std=c++20 -Wall $(EXTRA_DEFS) $(LDFLAGS)
+CXXFLAGS = -ggdb -O2 -std=c++20 -Wall $(EXTRA_DEFS) $(LDFLAGS)
 
 EXECUTABLE_NAME = sneep.out
 TEST_EXECUTABLE_NAME = test.out

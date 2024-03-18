@@ -27,8 +27,6 @@ Bitboard slider_attacks(const Square s, const Bitboard occ);
 
 inline Bitboard pawn_attacks(const Square s, const Color c) {
   assert(is_ok(s));
-  if (ThrowExtraErrors && (rank_of(s) == Rank_1 || rank_of(s) == Rank_8))
-    assert(0 && "Should NEVER have pawn on Rank 8 or 1");
   return PawnMoves[s][c];
 }
 
@@ -40,6 +38,34 @@ constexpr Bitboard knight_attacks(const Square s) {
 constexpr Bitboard king_attacks(const Square s) {
   assert(is_ok(s));
   return KingMoves[s];
+}
+
+inline Bitboard attacks_for(const Piece p, const Square f, const Bitboard occ) {
+  Bitboard att;
+  switch (p.type) {
+    case Pawn:
+      att = pawn_attacks(f, p.color);
+      break;
+    case Knight:
+      att = knight_attacks(f);
+      break;
+    case Bishop:
+      att = slider_attacks<Bishop>(f, occ);
+      break;
+    case Rook:
+      att = slider_attacks<Rook>(f, occ);
+      break;
+    case Queen:
+      att = slider_attacks<Queen>(f, occ);
+      break;
+    case King:
+      att = king_attacks(f);
+      break;
+    default:
+      debug::error("Invalid Piece type");
+  }
+
+  return att;
 }
 
 } // namespace Sneep

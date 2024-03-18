@@ -17,8 +17,6 @@ Bitboard LineBB[64][64] = {};
 namespace {
 inline Bitboard make_pawn_attacks(Square s, Color c) {
   assert(is_ok(s));
-  if (rank_of(s) == Rank_8 || rank_of(s) == Rank_1)
-      return 0; // Should NEVER matter, not dealing with that.
   Bitboard up = bb_from(s) << pawn_push(c);
   return ((up << DirE) & ~bb_from(File_A)) | ((up << DirW) & ~bb_from(File_H));
 }
@@ -40,8 +38,8 @@ void initialize_bitboards() {
 
     Bitboard knights = 0;
     Bitboard nn = b << 2 * DirN;
-    Bitboard ss = b << 2 * DirS;
-    Bitboard ww = (b << 2 * DirW) &~ (bb_from(File_H) | bb_from(File_G));
+    Bitboard ss = b >> -2 * DirS;
+    Bitboard ww = (b >> -2 * DirW) &~ (bb_from(File_H) | bb_from(File_G));
     Bitboard ee = (b << 2 * DirE) &~ (bb_from(File_A) | bb_from(File_B));
 
     knights |= ww << DirN;

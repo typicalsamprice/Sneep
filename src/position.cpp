@@ -2,11 +2,12 @@
 #include "bitboard.h"
 #include "movegen.h"
 #include "types.h"
+#include <cstdint>
+#include <cstring>
 #include <ios>
 #include <iostream>
 #include <optional>
 #include <sstream>
-#include <cstring>
 
 #include "debug.h"
 
@@ -73,7 +74,7 @@ AfterCheckersCheck:
       return false;
   }
 
-  if (state->blockers[us] & bb_from(from))  {
+  if (state->blockers[us] & bb_from(from)) {
     Bitboard pins = state->pinners[them];
     // Valid, since a king cannot be its own blocker.
     Bitboard pin_in_line = bb_line(from, king) & pins;
@@ -94,9 +95,11 @@ AfterCheckersCheck:
 
   if (mt == EnPassant) {
     Square capture = file_of(to) + rank_of(from);
-    Bitboard no_extra = pieces() ^ bb_from(from) ^ bb_from(to) ^ bb_from(capture);
+    Bitboard no_extra =
+        pieces() ^ bb_from(from) ^ bb_from(to) ^ bb_from(capture);
     // Don't count attacks from the taken pawn.
-    Bitboard atts = attacks_to(king, no_extra) & pieces(them) & ~bb_from(capture);
+    Bitboard atts =
+        attacks_to(king, no_extra) & pieces(them) & ~bb_from(capture);
     if (atts)
       return false;
   } else if (mt == Castle) {
@@ -131,6 +134,59 @@ bool Position::is_pseudo_legal(Move m) const {
 
   Piece movp = moved_piece(m);
   if (!is_ok(movp))
+    return false;
+
+  // [BEGIN] Check if pseudo-legal for this type of piece
+
+  switch (movp.type) {
+  case NO_TYPE:
+  case ALL_TYPES:
+    return false; // Shouldn't ever happen
+    break;
+  case Pawn:
+    if (us == White && from > to)
+      return false;
+    else if (us == Black && from < to)
+      return false;
+
+    if (distance(from, to) > 2)
+      return false;
+    if (distance(from, to) == 2 && file_of(from) != file_of(to))
+      return false;
+    if (rank_of(from) == rank_of(to))
+      return false;
+    // The 2-step over is covered on all between-cross check below this section.
+    if (empty(to)) {
+      if (file_of(from) != file_of(to) || to != state->ep)
+        return false;
+    } else if (file_of(from) == file_of(to))
+      return false;
+    break;
+  case Knight:
+    if (!(knight_attacks(from) & bb_from(to)))
+      return false;
+    break;
+  case Bishop:
+    if (!(slider_attacks<Bishop>(from, pieces()) & bb_from(to)))
+      return false;
+    break;
+  case Rook:
+    if (!(slider_attacks<Rook>(from, pieces()) & bb_from(to)))
+      return false;
+    break;
+  case Queen:
+    if (!(slider_attacks<Queen>(from, pieces()) & bb_from(to)))
+      return false;
+    break;
+  case King:
+    if (distance(from, to) != 1)
+      return false;
+    break;
+  }
+
+  // [END] Check if pseudo-legal for this type of piece
+
+  if (bb_between(from, to) & pieces())
     return false;
 
   Square capture_square = mt == EnPassant ? (file_of(to) + rank_of(from)) : to;
@@ -185,7 +241,7 @@ bool Position::is_pseudo_legal(Move m) const {
 void Position::do_move(Move m) {
   assert(!ThrowErrors || is_legal(m, false));
 
-  State* newState = new State;
+  State *newState = new State;
   std::memcpy(newState, state, sizeof(State));
   newState->prev = state;
   state = newState;
@@ -212,8 +268,7 @@ void Position::do_move(Move m) {
   }
 
   if (is_ok(capp)) {
-    Square cap_on = mt == EnPassant
-      ? (file_of(to) + rank_of(from)) : to;
+    Square cap_on = mt == EnPassant ? (file_of(to) + rank_of(from)) : to;
     assert(piece_on(cap_on) == capp);
 
     Piece remp = remove_piece(cap_on);
@@ -255,8 +310,8 @@ void Position::do_move(Move m) {
     Square possible = file_of(from) + relative_to(Rank_3, us);
     // Only set if necessary, can optimize movegen with a flag
     // OPT: Call flag `OptimizeEPMovegen`?
-    if ((distance(from, to) == 2)
-      && (pawn_attacks(possible, us) & pieces(them, Pawn))) {
+    if ((distance(from, to) == 2) &&
+        (pawn_attacks(possible, us) & pieces(them, Pawn))) {
       state->ep = possible;
     } else if (mt == Promotion) {
       assert(rank_of(to) == relative_to(Rank_8, us));
@@ -321,18 +376,19 @@ void Position::undo_move() {
 
     if (state->captured.has_value()) {
       Square back_on = mt == EnPassant ? (file_of(to) + rank_of(from)) : to;
-      assert(back_on == to || state->captured == std::make_optional(Piece(Pawn, them)));
+      assert(back_on == to ||
+             state->captured == std::make_optional(Piece(Pawn, them)));
       put_piece(state->captured.value(), back_on);
     }
   }
 
-  State* prev = state->prev;
+  State *prev = state->prev;
   free(state);
   state = prev;
   _fullmoves--;
 }
 
-template<bool Do> void Position::do_castle(const CastleRights castle) {
+template <bool Do> void Position::do_castle(const CastleRights castle) {
   Color us = to_move();
   Square kf = relative_to(E1, us), kt, rf, rt;
   if (castle == kingside(us)) {
@@ -367,7 +423,14 @@ Position::Position(std::string fenString) {
   // controls this, otherwise gives invalid Position (use at own risk!)
   std::istringstream fen(fenString);
 
+  // This is just setting up the empty memory to
+  // not screw me over later.
+  std::memset(this, 0, sizeof(Position));
+  for (int i = 0; i < 64; i++)
+    squares[i] = Piece();
+
   state = new State;
+  std::memset(state, 0, sizeof(State));
 
   Square s = A8;
   fen >> std::noskipws;
@@ -440,6 +503,21 @@ Position::Position(std::string fenString) {
     }
   }
 
+  fen >> tok;
+  if (tok != '-') {
+    if (ThrowErrors)
+      assert(tok >= 'a' && tok <= 'h');
+    File epf = File(tok - 'a');
+    fen >> tok;
+    if (ThrowErrors)
+      assert(tok >= '1' && tok <= '9');
+    Rank epr = Rank(tok - '1');
+    state->ep = epf + epr;
+  } else {
+    // Just to be sure
+    state->ep = NO_SQUARE;
+  }
+
   fen >> std::skipws >> state->halfmoves >> _fullmoves;
 
   if (ThrowExtraErrors && !state->is_ok())
@@ -447,8 +525,7 @@ Position::Position(std::string fenString) {
 }
 
 void Position::put_piece(Piece p, Square s) {
-  assert(empty(s));
-  debug::print(p);
+  debug::dassert(empty(s));
 
   Bitboard b = bb_from(s);
   colors_bb[p.color] |= b;
@@ -457,7 +534,6 @@ void Position::put_piece(Piece p, Square s) {
   squares[s] = p;
   // Should be all?? TODO Bugtest/Perftest to catch it
 }
-
 Bitboard Position::attacks_to(Square s, Bitboard occ) const {
   Bitboard rv = 0;
   // Compiler should auto-reuse that value, since this is all `const` wrt
@@ -496,8 +572,8 @@ void Position::setup_state() {
 
   Square king = king_of(us);
 
-  state->blockers[0] = state->blockers[1]
-    = state->pinners[0] = state->pinners[1] = state->checkers = 0;
+  state->blockers[0] = state->blockers[1] = state->pinners[0] =
+      state->pinners[1] = state->checkers = 0;
   // Normally, you would also reset the move-to-deliver-check squares,
   // but honestly I don't need a Position::gives_check(const Move m) const;
   // method since we aren't doing super intelligent stuff right now.
@@ -537,19 +613,4 @@ Bitboard Position::calc_pinners_blockers(Bitboard &pinners, const Color us) {
   return blockers;
 }
 
-template <bool Root> uint64_t perft(Position &pos, int depth) {
-  uint64_t nodes = 0, c = 0;
-
-  if (depth == 0)
-    return 1;
-
-  MoveList moves = generate_moves<All>(pos);
-  for (Move m : moves) {
-    pos.do_move(m);
-    nodes += perft<false>(pos, depth - 1);
-    pos.undo_move();
-  }
-
-  return nodes;
-}
 } // namespace Sneep

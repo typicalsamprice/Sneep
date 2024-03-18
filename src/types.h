@@ -1,5 +1,4 @@
-#ifndef TYPES_H_
-#define TYPES_H_
+#pragma once
 
 #include "debug.h"
 #include <algorithm>
@@ -234,8 +233,8 @@ typedef double Score;
 enum PieceT { Pawn, Knight, Bishop, Rook, Queen, King, ALL_TYPES, NO_TYPE };
 struct Piece {
 public:
-  Piece() : type(NO_TYPE), color(White){};
-  Piece(PieceT p, Color c) : type(p), color(c){};
+  constexpr Piece() : type(NO_TYPE), color(White){};
+  constexpr Piece(PieceT p, Color c) : type(p), color(c){};
   Piece(char c);
 
   bool operator==(const Piece &that) const noexcept {
@@ -248,6 +247,8 @@ public:
   PieceT type;
   Color color;
 };
+
+constexpr Piece null_piece = Piece();
 
 std::ostream &operator<<(std::ostream &os, const Piece &pc);
 
@@ -332,6 +333,23 @@ inline Square Move::to() const { return _to; }
 inline MoveT Move::type() const { return _type; }
 inline PieceT Move::promo() const { return _promo; }
 
+inline std::string stringify(const Square sq) {
+  std::string s;
+
+  s += char(file_of(sq) + 'a');
+  s += char(rank_of(sq) + '1');
+
+  return s;
+}
+inline std::string stringify(const Move m) {
+  std::string s;
+
+  s += stringify(m.from());
+  s += stringify(m.to());
+
+  return s;
+}
+
 #define ENABLE_INC_OP(T)                                                       \
   constexpr T operator++(T &t) { return t = T(int(t) + 1); }                   \
   constexpr T operator--(T &t) { return t = T(int(t) - 1); }
@@ -379,5 +397,3 @@ inline CastleRights operator-=(CastleRights &cr, CastleRights cr2) {
 }
 
 } // namespace Sneep
-
-#endif // TYPES_H_
