@@ -22,14 +22,18 @@ int main(int argc, char **argv) {
     << "\nThrowExtraErrors: " << ThrowExtraErrors << std::endl;
 
   initialize_bitboards();
-  Position p;
+  while (true) {
+    std::string f;
+    std::cout << "FEN: ";
+    std::getline(std::cin, f);
 
-  p.do_move(Move(E2, E3));
-  p.do_move(Move(G8, H6));
-  p.do_move(Move(F1, B5));
+    if (f.length() == 0)
+      break;
 
-  std::cout << p << std::endl;
-  std::cout << "Total Searched: " << perft<true>(p, 1) << std::endl;
+    Position p(f);
+    std::cout << p << std::endl;
+  }
+
 
   return 0;
 }
