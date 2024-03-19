@@ -4,6 +4,7 @@
 #include "./bitboard.h"
 #include "./position.h"
 #include "./perft.h"
+#include "movegen.h"
 
 #if !defined(__cpp_lib_bitops) || __cpp_lib_bitops < 201907L
 #error "Bit operations not defined!"
@@ -23,10 +24,12 @@ int main(int argc, char **argv) {
   initialize_bitboards();
   Position p;
 
-  //p.do_move(Move(B2, B3));
+  p.do_move(Move(E2, E3));
+  p.do_move(Move(G8, H6));
+  p.do_move(Move(F1, B5));
 
   std::cout << p << std::endl;
-  std::cout << perft<true>(p, 3) << std::endl;
+  std::cout << "Total Searched: " << perft<true>(p, 1) << std::endl;
 
   return 0;
 }

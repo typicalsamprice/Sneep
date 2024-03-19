@@ -82,6 +82,12 @@ public:
   Square ep() const { return state->ep; }
   CastleRights castle_rights() const { return state->cr; }
 
+  Bitboard blockers(const Color col) const { return state->blockers[col]; }
+  Bitboard pinners(const Color col) const { return state->blockers[col]; }
+
+  Bitboard checkers() const { return state->checkers; }
+  bool in_check() const { return state->checkers; }
+
   Square king_of(const Color col) const { return lsb(pieces(col, King)); };
 
   // Cannot just assign a string to a Position and expect it to work out.

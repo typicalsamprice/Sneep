@@ -2,7 +2,6 @@
 #include "bitboard.h"
 #include "movegen.h"
 #include "types.h"
-#include <cstdint>
 #include <cstring>
 #include <ios>
 #include <iostream>
@@ -57,7 +56,7 @@ bool Position::is_legal(const Move m, const bool checkPL) const {
     // Only one checker here
     assert(state->checkers && popcnt(state->checkers) == 1);
     Square checker = lsb(state->checkers);
-    Bitboard up_to_checker = bb_between(from, checker) & bb_from(checker);
+    Bitboard up_to_checker = bb_between(king, checker) | state->checkers;
     if (from != king) {
       // Have to take or interpose if not moving king.
       if (!(bb_from(to) & up_to_checker))

@@ -5,6 +5,8 @@
 #include <cassert>
 #include <cstdint>
 
+#warning "Add shift<Direction> operator, to irresponsible disallow masking"
+
 #include <bit>
 #include <bitset>
 #include <cstdlib>
@@ -13,12 +15,6 @@
 namespace Sneep {
 #define STR(X) STR2(X)
 #define STR2(X) #X
-
-#warning Remove TODO macro
-#define TODO                                                                   \
-  do {                                                                         \
-    assert(false && "TODO: Section unfinished");                               \
-  } while (0)
 
 // {{{ IFDEF'd garbage goes here
 
@@ -49,6 +45,7 @@ constexpr bool QuickStateCheck = false;
 // Should one always assume if EP is set, then EP moves need to be generated?
 // Otherwise, don't bother with the special generation.
 #if defined(OPTIMIZE_EP_MOVEGEN) || defined(ALL_OPTIMIZATIONS)
+#warning "En Passant optimization WIP"
 constexpr bool OptimizeEPMovegen = true;
 #else
 constexpr bool OptimizeEPMovegen = false;

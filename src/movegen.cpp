@@ -18,158 +18,116 @@ static inline void add_promos(MoveList &moves, const Square from,
 }
 
 template <GenType T> MoveList generate_moves(const Position &pos) {
-  constexpr bool DoCaps = T == Legal || T == Captures || T == All;
+  if constexpr (T == Legal)
+    debug::error("Cannot pass GenType::Legal");
 
   const Color us = pos.to_move();
+  const Color them = ~us;
+  const Square king = pos.king_of(us);
+  const Direction up = pawn_push(us);
+  const Bitboard rank7BB = us == White ? bb_from(Rank_7) : bb_from(Rank_2);
+  const Bitboard rank3BB = us == White ? bb_from(Rank_3) : bb_from(Rank_6);
+
+  const bool inCheck = pos.in_check();
+
+  const Bitboard empty = ~pos.pieces();
+  const Bitboard takeable = pos.pieces(them);
+
   const Bitboard pawns = pos.pieces(us, Pawn);
-  Bitboard seventh = pawns & bb_from(relative_to(Rank_7, us));
-  const Bitboard rest = pawns ^ seventh;
+  Bitboard pawnsRank7 = pawns & rank7BB;
+  Bitboard pawnsRest = pawns ^ pawnsRank7;
 
-  Bitboard up = (rest << pawn_push(us)) & ~pos.pieces();
-  Bitboard up2 = ((up & bb_from(relative_to(Rank_3, us))) << pawn_push(us)) &
-                 ~pos.pieces();
-
-  Bitboard attacksE = (up << DirE) & ~mask_for(DirE) & pos.pieces(~us);
-  Bitboard attacksW = (up << DirW) & ~mask_for(DirW) & pos.pieces(~us);
   MoveList moves;
 
-  while (up) {
-    Square s = pop_lsb(up);
-    // Subtraction is fine, since we know that square must exist
-    // due to the fact we shifted *from* it.
-    Move m(s - pawn_push(us), s);
-    moves.push_back(m);
+  Bitboard up1 = (pawnsRest << up) & empty;
+  Bitboard up2 = ((up1 & rank3BB) << up) & empty;
+
+  while (up1) {
+    Square t = pop_lsb(up1);
+    moves.push_back(Move(t - up, t));
   }
   while (up2) {
-    Square s = pop_lsb(up2);
-    // Subtraction is fine, since we know that square must exist
-    // due to the fact we shifted *from* it.
-    Move m(s - 2 * pawn_push(us), s);
-    moves.push_back(m);
+    Square t = pop_lsb(up2);
+    moves.push_back(Move(t - up - up, t));
   }
 
-  if constexpr (!DoCaps)
-    goto SkipPawnCaps;
+  if (pawnsRank7) {
+    Bitboard p_up = pawnsRank7 << up & empty;
+    Bitboard p_e = pawnsRank7 << up << DirE & takeable &~ bb_from(File_A);
+    Bitboard p_w = pawnsRank7 << up << DirW & takeable &~ bb_from(File_H);
 
-  while (attacksE) {
-    Square s = pop_lsb(attacksE);
-    Move m(s - pawn_push(us) - DirE, s);
-    moves.push_back(m);
-  }
-  while (attacksW) {
-    Square s = pop_lsb(attacksW);
-    Move m(s - pawn_push(us) - DirW, s);
-    moves.push_back(m);
-  }
-
-  // Generate EP
-  if (/* DoCaps && */ /* Technically no change due to the goto, but may help
-                         with no runtime loss (DoCaps is constexpr)  */
-      pos.ep() != NO_SQUARE) {
-    Bitboard caps = pawn_attacks(pos.ep(), ~us) & pawns;
-    while (caps) {
-      Square from = pop_lsb(caps);
-      Move m(from, pos.ep(), EnPassant);
-      moves.push_back(m);
+    while (p_up) {
+      Square t = pop_lsb(p_up);
+      add_promos(moves, t - up, t);
+    }
+    while (p_e) {
+      Square t = pop_lsb(p_e);
+      add_promos(moves, t - up - DirE, t);
+    }
+    while (p_w) {
+      Square t = pop_lsb(p_w);
+      add_promos(moves, t - up - DirW, t);
     }
   }
 
-SkipPawnCaps:
+  Bitboard ae = (pawnsRest << up << DirE) & takeable &~ bb_from(File_A);
+  Bitboard aw = (pawnsRest << up << DirW) & takeable &~ bb_from(File_H);
 
-  Bitboard promup = seventh << pawn_push(us) & ~pos.pieces();
-  Bitboard attackE = seventh << pawn_push(us) << DirE & pos.pieces(~us);
-  Bitboard attackW = seventh << pawn_push(us) << DirW & pos.pieces(~us);
-
-  while (promup) {
-    Square s = pop_lsb(promup);
-    Square f = s - pawn_push(us);
-    assert(is_ok(f));
-    add_promos(moves, f, s);
+  while (ae) {
+    Square t = pop_lsb(ae);
+    moves.push_back(Move(t - up - DirE, t));
   }
-  if (!DoCaps)
-    goto SkipCapPromoGen;
-
-  while (attackE) {
-    Square s = pop_lsb(attackE);
-    Square f = s - DirE - pawn_push(us);
-    assert(is_ok(f));
-    add_promos(moves, f, s);
-  }
-  while (attackW) {
-    Square s = pop_lsb(attackW);
-    Square f = s - DirW - pawn_push(us);
-    assert(is_ok(f));
-    add_promos(moves, f, s);
+  while (aw) {
+    Square t = pop_lsb(aw);
+    moves.push_back(Move(t - up - DirW, t));
   }
 
-SkipCapPromoGen:
-  const Bitboard maskoff = DoCaps ? ~pos.pieces(us) : ~pos.pieces();
-  // Should be ALL possible pawn moves done now
+  if (pos.ep() != NO_SQUARE) {
+    assert(relative_to(rank_of(pos.ep()), us) == relative_to(Rank_6, us));
+    Bitboard potent = pawn_attacks(pos.ep(), them) & pawnsRest;
+    assert(potent);
+    while (potent)
+      moves.push_back(Move(pop_lsb(potent), pos.ep(),EnPassant));
+  }
+
+  // END PAWN GEN
+  Bitboard target = ~pos.pieces(us);
+
   Bitboard knights = pos.pieces(us, Knight);
   while (knights) {
-    Square s = pop_lsb(knights);
-    assert(is_ok(s));
-    Bitboard movs = knight_attacks(s) & maskoff;
-    while (movs) {
-      Square to = pop_lsb(movs);
-      assert(is_ok(to));
-      moves.push_back(Move(s, to));
-    }
+    Square kn = pop_lsb(knights);
+    assert(pos.piece_on(kn) == Piece(Knight, us));
+    Bitboard atts = attacks_for(pos.piece_on(kn), kn, pos.pieces()) & target;
+    while (atts)
+      moves.push_back(Move(kn, pop_lsb(atts)));
+  }
+  Bitboard bqs = pos.pieces(us, Bishop, Queen);
+  while (bqs) {
+    Square bq = pop_lsb(bqs);
+    Bitboard atts = attacks_for(Piece(Bishop, us), bq, pos.pieces()) & target;
+    while (atts)
+      moves.push_back(Move(bq, pop_lsb(atts)));
+  }
+  Bitboard rqs = pos.pieces(us, Rook, Queen);
+  while (rqs) {
+    Square rq = pop_lsb(rqs);
+    Bitboard atts = attacks_for(Piece(Rook, us), rq, pos.pieces()) & target;
+    while (atts)
+      moves.push_back(Move(rq, pop_lsb(atts)));
   }
 
-  Bitboard bish_q = pos.pieces(us, Bishop, Queen);
-  Bitboard rook_q = pos.pieces(us, Rook, Queen);
+  Bitboard katts = attacks_for(pos.piece_on(king), king, pos.pieces()) & target;
+  while (katts)
+    moves.push_back(Move(king, pop_lsb(katts)));
 
-  while (bish_q) {
-    Square bq = pop_lsb(bish_q);
-    assert(is_ok(bq));
-    Bitboard atts = slider_attacks<Bishop>(bq, pos.pieces()) & maskoff;
-    while (atts) {
-      Square t = pop_lsb(atts);
-      assert(is_ok(t));
-      moves.push_back(Move(bq, t));
-    }
-  }
-  while (rook_q) {
-    Square rq = pop_lsb(rook_q);
-    assert(is_ok(rq));
-    Bitboard atts = slider_attacks<Rook>(rq, pos.pieces()) & maskoff;
-    while (atts) {
-      Square t = pop_lsb(atts);
-      assert(is_ok(t));
-      moves.push_back(Move(rq, t));
-    }
-  }
-
-  assert(pos.pieces(us, King));
-  Square king = lsb(pos.pieces(us, King));
-  assert(is_ok(king));
-  Bitboard atts = king_attacks(king) & maskoff;
-  while (atts) {
-    Square t = pop_lsb(atts);
-    assert(is_ok(t));
-    moves.push_back(Move(king, t));
-  }
-
-  CastleRights cr = pos.castle_rights();
-  CastleRights cs = us == White ? White_OO : Black_OO;
-  CastleRights cl = us == White ? White_OOO : Black_OOO;
-
-  if (contains(cr, cs)) {
+  const CastleRights csr = pos.castle_rights();
+  if (contains(csr, kingside(us)) && !(bb_between(king, relative_to(H1, us)) & pos.pieces())) {
     assert(king == relative_to(E1, us));
-    Square rook = relative_to(H1, us);
-    assert(pos.piece_on(rook) == Piece(Rook, us));
-    Bitboard btw = bb_between(king, rook); // Not including `rook`
-    if (!(btw & pos.pieces()))
-      moves.push_back(Move(king, rook + DirW, Castle));
+    moves.push_back(Move(king, relative_to(G1, us), Castle));
   }
-  if (contains(cr, cl)) {
+  if (contains(csr, queenside(us)) && !(bb_between(king, relative_to(A1, us)) & pos.pieces())) {
     assert(king == relative_to(E1, us));
-    Square rook = relative_to(A1, us);
-    assert(pos.piece_on(rook) == Piece(Rook, us));
-    Bitboard btw = bb_between(king, rook);
-    if (!(btw & pos.pieces()))
-      moves.push_back(Move(king, rook + DirE + DirE, Castle));
+    moves.push_back(Move(king, relative_to(C1, us), Castle));
   }
 
   return moves;
@@ -184,7 +142,15 @@ template <> MoveList generate_moves<Legal>(const Position &pos) {
   // TODO Actually not check every single one
   moves.erase(
       std::remove_if(moves.begin(), moves.end(),
-                     [&pos](Move m) { return !pos.is_legal(m, false); }),
+                     [&pos](Move m) {
+                       // Check if we need the legality check
+                       if (pos.moved_piece(m).type == King || pos.in_check())
+                         return !pos.is_legal(m, false);
+                       else if (pos.blockers(pos.to_move()) & bb_from(m.from()))
+                         return !pos.is_legal(m, false);
+
+                       return false;
+                     }),
       moves.end());
 
   return moves;
